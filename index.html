@@ -4,24 +4,224 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PEGAO XL — Entretenimiento 360</title>
-<!-- Si la app está instalada, Android abre la app directo (App Link) y
-     esta página ni se carga. Si llega aquí es porque la app no está
-     instalada: se redirige a la versión web de PEGAO XL. -->
-<meta http-equiv="refresh" content="0; url=https://muse.ai/s/pegao-xl-web-ka6xoxxxghxyswq/BjsKXQWPpkUL0vaKwOE8fI9aRxqKhE_JsHNc3YuJ8Bo">
-<script>
-  window.location.replace('https://muse.ai/s/pegao-xl-web-ka6xoxxxghxyswq/BjsKXQWPpkUL0vaKwOE8fI9aRxqKhE_JsHNc3YuJ8Bo');
-</script>
+<meta name="description" content="PEGAO XL — Entretenimiento 360. Las fiestas del mundo en un solo lugar. Descarga la app para Android.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  body { background: #0b0b10; color: #f5f5f5; font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 15vh 24px; margin: 0; }
-  h1 { color: #f5c542; font-size: 2.2rem; margin: 0 0 8px; letter-spacing: 1px; }
-  p { color: #cfcfd6; font-size: 1.05rem; }
-  a.btn { display: inline-block; margin-top: 20px; background: #f5c542; color: #111; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 999px; font-size: 1.1rem; }
+  :root { --gold: #f5c542; --gold-dark: #d9a521; --bg: #0b0b10; --card: #16161d; --text: #f5f5f5; --muted: #b9b9c2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  a { color: var(--gold); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 48px; }
+  header { text-align: center; padding: 36px 16px 8px; }
+  .logo { font-size: 2.6rem; font-weight: 800; letter-spacing: 2px; color: var(--gold); margin: 0; line-height: 1; }
+  .kicker { color: var(--gold); font-weight: 700; letter-spacing: 3px; font-size: .8rem; text-transform: uppercase; margin: 10px 0 4px; }
+  .tagline { color: var(--muted); font-size: 1.05rem; margin: 0; }
+  .sub { color: var(--muted); font-size: .95rem; margin: 10px auto 0; max-width: 480px; line-height: 1.5; }
+  .btn-download { display: block; width: 100%; max-width: 420px; margin: 22px auto 8px; background: var(--gold); color: #111; font-weight: 800; font-size: 1.2rem; text-align: center; text-decoration: none; padding: 16px 24px; border-radius: 999px; box-shadow: 0 6px 24px rgba(245, 197, 66, .35); }
+  .btn-download:active { background: var(--gold-dark); }
+  .publish-note { text-align: center; color: var(--muted); font-size: .9rem; margin: 0 0 8px; }
+  .section-title { font-size: 1.15rem; font-weight: 700; margin: 28px 0 12px; border-bottom: 1px solid #26262e; padding-bottom: 8px; }
+  .card { background: var(--card); border: 1px solid #26262e; border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+  .card.featured { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 8px 28px rgba(245, 197, 66, .18); }
+  .card img.flyer { width: 100%; display: block; max-height: 420px; object-fit: cover; }
+  .card-body { padding: 14px 16px 16px; }
+  .card-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 6px; }
+  .card-desc { color: var(--text); margin: 0 0 10px; line-height: 1.5; white-space: pre-line; }
+  .meta { color: var(--muted); font-size: .88rem; line-height: 1.7; margin: 0; }
+  .meta b { color: var(--text); font-weight: 600; }
+  .tags { margin-top: 10px; }
+  .tag { display: inline-block; background: #23232c; color: var(--gold); font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; margin: 0 6px 6px 0; }
+  .stars { color: var(--gold); font-weight: 700; }
+  .empty, .loading, .error { text-align: center; color: var(--muted); padding: 32px 16px; line-height: 1.6; }
+  .error { color: #ffb3b3; }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 36px; line-height: 1.8; }
+  footer a { text-decoration: none; }
 </style>
 </head>
 <body>
-  <h1>PEGAO XL</h1>
-  <p>Entretenimiento 360 — Las fiestas del mundo en un solo lugar.</p>
-  <p>Te estamos llevando a la app…</p>
-  <a class="btn" href="https://muse.ai/s/pegao-xl-web-ka6xoxxxghxyswq/BjsKXQWPpkUL0vaKwOE8fI9aRxqKhE_JsHNc3YuJ8Bo">Abrir PEGAO XL</a>
+<div class="wrap">
+  <header>
+    <p class="logo">PEGAO XL</p>
+    <p class="kicker">Entretenimiento 360</p>
+    <p class="tagline">Las fiestas del mundo en un solo lugar.</p>
+    <p class="sub">Aquí encuentras todo lo que buscas de fiestas: fiestas, negocios completos y choferes cerca de ti. Publicar es gratis y abierto.</p>
+  </header>
+
+  <a class="btn-download" href="https://github.com/Pegaony/pegao-xl/releases/download/v11/pegao-xl-v11.apk">⬇ Descargar APK</a>
+  <p class="publish-note">Para publicar, descarga la app.</p>
+
+  <div id="featured"></div>
+
+  <h2 class="section-title">Fiestas y negocios</h2>
+  <div id="feed"><p class="loading">Cargando publicaciones…</p></div>
+
+  <a class="btn-download" href="https://github.com/Pegaony/pegao-xl/releases/download/v11/pegao-xl-v11.apk">⬇ Descargar APK</a>
+  <p class="publish-note">Para publicar, descarga la app.</p>
+
+  <footer>
+    PEGAO XL — Entretenimiento 360<br>
+    <a href="https://www.instagram.com/pegaoxl" target="_blank" rel="noopener">@pegaoxl en Instagram</a>
+  </footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  'use strict';
+  var APK_URL = 'https://github.com/Pegaony/pegao-xl/releases/download/v11/pegao-xl-v11.apk';
+  var FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyDOs4MhKIgtONKodyu_tf-5aFyKwkBwGAQ',
+    authDomain: 'pegao-xl.firebaseapp.com',
+    projectId: 'pegao-xl',
+    storageBucket: 'pegao-xl.firebasestorage.app',
+    messagingSenderId: '684483593421',
+    appId: '1:684483593421:web:13205114916242b287d584'
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtDate(d, t) {
+    if (!d && !t) return '';
+    var out = '';
+    if (d) {
+      var parts = String(d).split('-');
+      if (parts.length === 3) out = parts[2] + '/' + parts[1] + '/' + parts[0];
+      else out = String(d);
+    }
+    if (t) out += (out ? ' · ' : '') + String(t);
+    return out;
+  }
+
+  function flyerOk(x) {
+    if (!x.flyer) return false;
+    if (x.flyerAt) {
+      var ageMs = Date.now() - Number(x.flyerAt);
+      if (ageMs > 7 * 24 * 60 * 60 * 1000) return false;
+    }
+    if (x.date) {
+      var end = Date.parse(x.date + 'T23:59:59');
+      if (!isNaN(end) && end < Date.now()) return false;
+    }
+    return true;
+  }
+
+  function cardHtml(kind, x, starsHtml, extraClass) {
+    var isFiesta = kind === 'fiesta';
+    var title = isFiesta ? (x.desc || 'Fiesta') : (x.name || 'Negocio');
+    var desc = isFiesta ? '' : (x.services || '');
+    var html = '<article class="card' + (extraClass ? ' ' + extraClass : '') + '">';
+    if (flyerOk(x)) html += '<img class="flyer" src="' + esc(x.flyer) + '" alt="Flyer">';
+    html += '<div class="card-body">';
+    html += '<h3 class="card-title">' + esc(title) + '</h3>';
+    if (desc) html += '<p class="card-desc">' + esc(desc) + '</p>';
+    html += '<p class="meta">';
+    if (x.address) html += '📍 <b>Dirección:</b> ' + esc(x.address) + '<br>';
+    else if (x.place) html += '📍 <b>Lugar:</b> ' + esc(x.place) + '<br>';
+    var dt = fmtDate(x.date, x.time);
+    if (dt) html += '🗓 ' + esc(dt) + '<br>';
+    if (x.price) html += '💲 ' + esc(x.price) + '<br>';
+    if (x.contact) html += '📲 ' + esc(x.contact) + '<br>';
+    if (x.by) html += '👤 ' + esc(x.by) + '<br>';
+    html += '</p>';
+    html += '<div class="tags"><span class="tag">' + (isFiesta ? 'Fiesta' : 'Negocio') + '</span>';
+    if (x.category) html += '<span class="tag">' + esc(x.category) + '</span>';
+    if (starsHtml) html += '<span class="tag stars">' + starsHtml + '</span>';
+    html += '</div></div></article>';
+    return html;
+  }
+
+  function byAt(a, b) { return (Number(b.at) || 0) - (Number(a.at) || 0); }
+
+  function showError(el, msg) {
+    el.innerHTML = '<p class="error">' + esc(msg) + '</p>';
+  }
+
+  function loadFeatured(db, postId) {
+    var box = document.getElementById('featured');
+    var done = false;
+    function tryColl(coll, kind) {
+      return db.collection(coll).doc(postId).get().then(function (snap) {
+        if (done) return null;
+        if (snap.exists) {
+          done = true;
+          var x = snap.data(); x.id = snap.id;
+          return db.collection('reviews')
+            .where('targetKind', '==', kind).where('targetId', '==', postId).get()
+            .then(function (rs) {
+              var total = 0, n = 0;
+              rs.forEach(function (r) { var s = Number(r.data().stars); if (s > 0) { total += s; n++; } });
+              var starsHtml = n ? ('★ ' + (total / n).toFixed(1) + ' · ' + n + (n === 1 ? ' reseña' : ' reseñas')) : '';
+              box.innerHTML = '<h2 class="section-title">Publicación compartida</h2>' +
+                cardHtml(kind, x, starsHtml, 'featured');
+            })
+            .catch(function () {
+              box.innerHTML = '<h2 class="section-title">Publicación compartida</h2>' +
+                cardHtml(kind, x, '', 'featured');
+            });
+        }
+        return null;
+      });
+    }
+    tryColl('parties', 'fiesta')
+      .then(function () { if (!done) return tryColl('businesses', 'negocio'); })
+      .then(function () {
+        if (!done) box.innerHTML = '<p class="empty">Esa publicación ya no está disponible.</p>';
+      })
+      .catch(function () {
+        if (!done) box.innerHTML = '<p class="empty">No se pudo cargar esa publicación. Prueba de nuevo.</p>';
+      });
+  }
+
+  function loadFeed(db) {
+    var feed = document.getElementById('feed');
+    Promise.all([
+      db.collection('parties').orderBy('at', 'desc').limit(30).get(),
+      db.collection('businesses').orderBy('at', 'desc').limit(30).get()
+    ]).then(function (results) {
+      var items = [];
+      results[0].forEach(function (d) { var x = d.data(); x.id = d.id; items.push({ kind: 'fiesta', x: x }); });
+      results[1].forEach(function (d) { var x = d.data(); x.id = d.id; items.push({ kind: 'negocio', x: x }); });
+      items.sort(function (a, b) { return byAt(a.x, b.x); });
+      if (!items.length) {
+        feed.innerHTML = '<p class="empty">Aún no hay publicaciones.<br>Descarga la app y sé el primero en publicar una fiesta o un negocio.</p>';
+        return;
+      }
+      feed.innerHTML = items.map(function (it) { return cardHtml(it.kind, it.x, ''); }).join('');
+    }).catch(function () {
+      showError(feed, 'No se pudieron cargar las publicaciones. Revisa tu conexión y vuelve a intentarlo.');
+    });
+  }
+
+  function init() {
+    var params = new URLSearchParams(window.location.search);
+    var postId = params.get('post');
+    if (typeof firebase === 'undefined' || !firebase.firestore) {
+      showError(document.getElementById('feed'), 'No se pudieron cargar las publicaciones. Revisa tu conexión y vuelve a intentarlo.');
+      if (postId) document.getElementById('featured').innerHTML = '';
+      return;
+    }
+    var db;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+    } catch (e) {
+      showError(document.getElementById('feed'), 'No se pudieron cargar las publicaciones. Revisa tu conexión y vuelve a intentarlo.');
+      return;
+    }
+    if (postId) loadFeatured(db, postId);
+    loadFeed(db);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
 </body>
 </html>
