@@ -283,7 +283,7 @@
      elimina DEFINITIVAMENTE: del caché local y del documento en
      Firestore (si hay nube), con su flyer (va dentro del documento),
      sus reservas y sus reseñas/comentarios. Lo de hoy que todavía no
-     pasó su hora se queda. Negocios y choferes NO expiran (no tienen
+     pasó su hora se queda. Los negocios NO expiran (no tienen
      fecha de evento). Silencioso, sin avisar. Si no hay nube, el
      borrado queda apuntado en `pegaoxl_tombstones` y se ejecuta al
      conectar (flushTombstones), para que la fiesta no resucite cuando
@@ -416,7 +416,7 @@
   /* ---------- Nube: Cloud Firestore (compartido entre teléfonos) ----------
      Modo nube solo cuando hay config completa (appId real, no el marcador)
      y el SDK de Firebase cargó. Si no, todo sigue en localStorage, igual
-     que antes. Las colecciones son: parties, businesses, drivers, rides,
+     que antes. Las colecciones son: parties, businesses,
      reviews, comments y profiles.
      FUENTE DE VERDAD: el caché local (localStorage + memoria). El feed se
      pinta al instante desde el caché; los snapshots de Firestore solo
@@ -424,7 +424,7 @@
      el caché y se ven al instante, y Firestore se escribe en segundo
      plano con el MISMO id, así el snapshot no duplica nada. */
   var db = null, cloudOn = false, cloudStarted = false;
-  var CACHE_KEYS = { parties: 'pegaoxl_parties', businesses: 'pegaoxl_businesses', drivers: 'pegaoxl_drivers', rides: 'pegaoxl_rides', reviews: 'pegaoxl_reviews', comments: 'pegaoxl_comments', reservations: 'pegaoxl_reservations', broadcasts: 'pegaoxl_broadcasts' };
+  var CACHE_KEYS = { parties: 'pegaoxl_parties', businesses: 'pegaoxl_businesses', reviews: 'pegaoxl_reviews', comments: 'pegaoxl_comments', reservations: 'pegaoxl_reservations', broadcasts: 'pegaoxl_broadcasts' };
   function isCloud() { return cloudOn && !!db; }
   function cloudConfigValid() {
     var c = window.PEGAO_FIREBASE_CONFIG;
@@ -548,7 +548,7 @@
      conecta ni con reintentos. El Worker pegao-xl-feed es un espejo de
      LECTURA de las colecciones públicas de Firestore (lee por REST con
      la clave web pública, como la página de GitHub Pages): devuelve
-     {country, parties, businesses, drivers, reviews} y el país del
+     {country, parties, businesses, reviews} y el país del
      visitante (cf-ipcountry). Si la nube no conecta y el espejo
      responde, la app muestra el feed y el mapa con esos datos en modo
      SOLO LECTURA. El aviso de la VPN sale SOLO si el país está en la
@@ -569,7 +569,7 @@
   function mirrorCountryOf() { return mirrorCountry; }
   function vpnMessage() { return 'Estás en un país donde Google está bloqueado. Activa la VPN para publicar.'; }
   /* ¿Se puede hacer esta acción? En modo espejo no: ni publicar, ni
-     estrellas, ni comentarios, ni pedir viajes. Compartir sí se puede. */
+     estrellas, ni comentarios. Compartir sí se puede. */
   function guardAction() {
     if (!mirrorMode) return true;
     if (isRestrictedCountry()) toast(vpnMessage());
@@ -583,7 +583,7 @@
       mirrorCountry = data.country ? String(data.country).toUpperCase() : null;
       /* El espejo tiene el mismo esquema que el caché: se fusiona con
          syncCache (conserva las publicaciones pendientes locales). */
-      ['parties', 'businesses', 'drivers', 'reviews'].forEach(function (coll) {
+      ['parties', 'businesses', 'reviews'].forEach(function (coll) {
         if (Array.isArray(data[coll])) syncCache(coll, data[coll].slice());
       });
       if (Array.isArray(data.reviews)) save('pegaoxl_reviews', data.reviews.slice());
@@ -596,14 +596,14 @@
     mirrorMode = true;
     try { document.body.classList.add('mirror-readonly'); } catch (e) {}
     updateMirrorUI();
-    renderFeed(); renderMapMarkers(); renderDrivers();
+    renderFeed(); renderMapMarkers();
   }
   function exitMirrorMode() {
     if (!mirrorMode) { updateMirrorUI(); return; }
     mirrorMode = false;
     try { document.body.classList.remove('mirror-readonly'); } catch (e) {}
     updateMirrorUI();
-    renderFeed(); renderMapMarkers(); renderDrivers();
+    renderFeed(); renderMapMarkers();
   }
   function updateMirrorUI() {
     try {
@@ -611,7 +611,7 @@
       var show = mirrorMode && isRestrictedCountry();
       if (banner) {
         if (show) {
-          banner.innerHTML = '<p class="vpn-title">🔒 Estás en un país donde Google está bloqueado.</p><p class="vpn-sub">Puedes ver todo, pero para publicar, dejar reseñas o pedir viajes activa la VPN.</p>';
+          banner.innerHTML = '<p class="vpn-title">🔒 Estás en un país donde Google está bloqueado.</p><p class="vpn-sub">Puedes ver todo, pero para publicar o dejar reseñas activa la VPN.</p>';
           banner.classList.remove('hidden');
         } else banner.classList.add('hidden');
       }
@@ -712,10 +712,8 @@
     var defs = [
       { coll: 'parties', limit: 100, render: function () { scheduleRender('feed', renderFeed); scheduleRender('map', renderMapMarkers); } },
       { coll: 'businesses', limit: 100, render: function () { scheduleRender('feed', renderFeed); } },
-      { coll: 'drivers', limit: 50, render: function () { scheduleRender('drivers', renderDrivers); } },
-      { coll: 'rides', limit: 50, render: function () { scheduleRender('drivers', renderDrivers); } },
-      { coll: 'reviews', limit: 200, render: function () { scheduleRender('feed', renderFeed); scheduleRender('drivers', renderDrivers); scheduleRender('reputation', renderReputation); } },
-      { coll: 'comments', limit: 200, render: function () { scheduleRender('feed', renderFeed); scheduleRender('drivers', renderDrivers); } },
+      { coll: 'reviews', limit: 200, render: function () { scheduleRender('feed', renderFeed); scheduleRender('reputation', renderReputation); } },
+      { coll: 'comments', limit: 200, render: function () { scheduleRender('feed', renderFeed); } },
       { coll: 'reservations', limit: 50, render: function () { scheduleRender('account', renderReservations); scheduleRender('feed', renderFeed); } },
       /* Avisos del administrador: un solo documento, el más reciente. */
       { coll: 'broadcasts', limit: 1, render: function () { renderBroadcast(); } }
@@ -732,7 +730,7 @@
         /* Error de la nube: el caché local sigue mostrando el feed y se
            reintenta la conexión a los 20 s en vez de quedarse en local. */
         noteCloudFailure(20000);
-        renderFeed(); renderMapMarkers(); renderDrivers();
+        renderFeed(); renderMapMarkers();
       });
     });
     /* Perfiles: mapa id -> perfil (para mostrar foto y nombre en el feed). Acotado a 200. */
@@ -752,7 +750,7 @@
         if (myFresh && myFresh.tastes && !hasTastes()) { try { save('pegaoxl_tastes', myFresh.tastes); } catch (e) {} }
         seedTastesFromProfile();
         safeStep(adoptFavoritesFromProfile); /* los favoritos viajan con el perfil */
-        scheduleRender('feed', renderFeed); scheduleRender('drivers', renderDrivers); scheduleRender('account', renderAccount);
+        scheduleRender('feed', renderFeed); scheduleRender('account', renderAccount);
       } catch (e) { /* sigue en local */ }
     }, function () { /* sigue en local */ });
   }
@@ -822,8 +820,6 @@
       };
       pushAll('parties', 'pegaoxl_parties');
       pushAll('businesses', 'pegaoxl_businesses');
-      pushAll('drivers', 'pegaoxl_drivers');
-      pushAll('rides', 'pegaoxl_rides');
       pushAll('reviews', 'pegaoxl_reviews');
       pushAll('comments', 'pegaoxl_comments');
       var mine = load('pegaoxl_profile', null);
@@ -877,7 +873,7 @@
   });
 
   /* ---------- Navegación ---------- */
-  var mapReady = false, map = null, markersLayer = null, trackingLayer = null, topoLayer = null, esriLayer = null, baseLayer = null, baseLayerSwapAt = 0;
+  var mapReady = false, map = null, markersLayer = null, topoLayer = null, esriLayer = null, baseLayer = null, baseLayerSwapAt = 0;
   var ARTEMISA_CENTER = [22.81, -82.75]; /* vista inicial y punto de partida del selector de pin; NUNCA un pin falso */
   function showTab(name) {
     $$('.tab').forEach(function (t) { t.classList.toggle('active', t.id === 'tab-' + name); });
@@ -976,6 +972,7 @@
     safeStep(renderReports);
     safeStep(renderReservations);
     safeStep(renderAdminPanel);
+    safeStep(renderPermissions); /* v18: sección Permisos + avisos push */
     safeStep(startReportsListener); /* solo el dueño ve los reportes */
     safeStep(adoptFavoritesFromProfile);
   }
@@ -993,7 +990,6 @@
     var posts = 0, mine = [];
     parties().forEach(function (p) { if (p.by === u.name) { posts++; mine.push({ kind: 'fiesta', id: p.id }); } });
     businesses().forEach(function (b) { if (b.by === u.name) { posts++; mine.push({ kind: 'negocio', id: b.id }); } });
-    drivers().forEach(function (d) { if (d.name === u.name) { posts++; mine.push({ kind: 'chofer', id: d.id }); } });
     var all = reviews().filter(function (r) { return mine.some(function (t) { return t.kind === r.targetKind && t.id === r.targetId; }); });
     var sum = 0; all.forEach(function (r) { sum += r.stars || 0; });
     return { posts: posts, avg: all.length ? sum / all.length : 0, count: all.length };
@@ -1043,8 +1039,8 @@
     } catch (e) { /* nunca rompe la cuenta */ }
   }
   /* Mis publicaciones estilo Letterboxd: fila horizontal con las
-     tarjetas de lo que publicó el usuario (fiestas, negocios,
-     chofer). Tocar una abre el detalle o baja hasta su tarjeta. */
+     tarjetas de lo que publicó el usuario (fiestas y negocios).
+     Tocar una abre el detalle o baja hasta su tarjeta. */
   function renderMyPosts() {
     try {
       var u = currentUser(); var box = $('#profileMyPosts'); if (!box) return;
@@ -1052,7 +1048,6 @@
       var mine = [];
       parties().forEach(function (p) { if (p.by === u.name) mine.push({ kind: 'fiesta', id: p.id, title: p.desc, at: p.at || 0, flyer: p.flyer, flyerAt: p.flyerAt, date: p.date }); });
       businesses().forEach(function (b) { if (b.by === u.name) mine.push({ kind: 'negocio', id: b.id, title: b.name, at: b.at || 0, flyer: b.flyer, flyerAt: b.flyerAt, date: null }); });
-      drivers().forEach(function (d) { if (d.name === u.name) mine.push({ kind: 'chofer', id: d.id, title: d.car, at: d.at || 0, flyer: null, flyerAt: null, date: null }); });
       mine.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
       if (!mine.length) { box.innerHTML = '<p class="muted">Todavía no publicaste nada. Cuando publiques, tus fiestas y negocios salen aquí.</p>'; return; }
       box.innerHTML = mine.map(function (m) {
@@ -1063,13 +1058,12 @@
         return '<button type="button" class="profile-post-card" data-my-post="' + m.kind + ':' + m.id + '">' +
           '<span class="profile-post-thumb">' + thumb + '</span>' +
           '<span class="profile-post-title">' + esc(m.title || '') + '</span>' +
-          '<span class="tag">' + (m.kind === 'fiesta' ? 'Fiesta' : m.kind === 'negocio' ? 'Negocio' : 'Chofer') + '</span></button>';
+          '<span class="tag">' + (m.kind === 'fiesta' ? 'Fiesta' : 'Negocio') + '</span></button>';
       }).join('');
       $$('#profileMyPosts [data-my-post]').forEach(function (b) {
         b.addEventListener('click', function () {
           var p = b.getAttribute('data-my-post').split(':');
           if (p[0] === 'negocio') { openBizDetail(p[1]); return; }
-          if (p[0] === 'chofer') { showTab('ubers'); return; }
           showTab('feed');
           setTimeout(function () { highlightPostCard('fiesta', p[1]); }, 150);
         });
@@ -1085,7 +1079,6 @@
       var mine = [];
       parties().forEach(function (p) { if (p.by === u.name) mine.push({ kind: 'fiesta', id: p.id, title: p.desc }); });
       businesses().forEach(function (b) { if (b.by === u.name) mine.push({ kind: 'negocio', id: b.id, title: b.name }); });
-      drivers().forEach(function (d) { if (d.name === u.name) mine.push({ kind: 'chofer', id: d.id, title: d.car }); });
       var all = reviews().filter(function (r) { return mine.some(function (t) { return t.kind === r.targetKind && t.id === r.targetId; }); });
       all.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
       if (!all.length) { box.innerHTML = '<p class="muted">Todavía no te dejaron reseñas. Cuando alguien te deje estrellas en tus publicaciones, salen aquí.</p>'; return; }
@@ -1156,7 +1149,7 @@
           profilePhotoData = null; profileFormDirty = false;
           var pp = $('#profilePhotoPreview'); if (pp) pp.innerHTML = '';
           var pi = $('#profilePhotoInput'); if (pi) pi.value = '';
-          renderProfile(); renderAccount(); renderFeed(); renderDrivers();
+          renderProfile(); renderAccount(); renderFeed();
           clearLastError(); renderLastError();
           toast('Perfil guardado');
           if (isCloud()) cloudPut('profiles', prof);
@@ -1198,7 +1191,7 @@
     });
   }
   /* Reputación del usuario: promedio de estrellas de TODAS sus
-     publicaciones (fiestas, negocios y choferes con su nombre).
+     publicaciones (fiestas y negocios con su nombre).
      La reputación es lo que sustituye a los seguidores: no hay
      seguidores en la app, la calidad se mide en estrellas. */
   function renderReputation() {
@@ -1208,7 +1201,6 @@
     var mine = [];
     parties().forEach(function (p) { if (p.by === u.name) mine.push({ kind: 'fiesta', id: p.id }); });
     businesses().forEach(function (b) { if (b.by === u.name) mine.push({ kind: 'negocio', id: b.id }); });
-    drivers().forEach(function (d) { if (d.name === u.name) mine.push({ kind: 'chofer', id: d.id }); });
     var all = reviews().filter(function (r) {
       return mine.some(function (t) { return t.kind === r.targetKind && t.id === r.targetId; });
     });
@@ -1246,7 +1238,6 @@
   $('#logoutBtn').addEventListener('click', function () {
     var ga = googleAuth();
     if (ga && ga.signOut) { ga.signOut().catch(function () {}); }
-    stopDriverTracking(); /* al cerrar sesión deja de compartir ubicación */
     removeStored('pegaoxl_user'); removeStored('pegaoxl_profile'); removeStored('pegaoxl_tastes');
     renderAccount(); toast('Sesión cerrada');
     firebaseReauthAnonymous();
@@ -1303,7 +1294,7 @@
      no el correo. Caché local: `pegaoxl_profile` (el mío) y
      `pegaoxl_profiles` (mapa id -> perfil, para mostrar foto y nombre
      en las publicaciones de otros). */
-  var PROFILE_CATEGORIES = ['Cantante', 'Bailarín', 'Influencer', 'Fiesta', 'Restaurante', 'Servicio de Comida', 'Bar', 'Discoteca', 'Centro Nocturno', 'Chofer / UBER', 'MIPYME', 'Negocio', 'Otro'];
+  var PROFILE_CATEGORIES = ['Cantante', 'Bailarín', 'Influencer', 'Fiesta', 'Restaurante', 'Servicio de Comida', 'Bar', 'Discoteca', 'Centro Nocturno', 'MIPYME', 'Negocio', 'Otro'];
   function profileIdOf(u) { return (u && (u.googleId || u.email)) || null; }
   function profilesMap() { return load('pegaoxl_profiles', {}); }
 
@@ -1354,7 +1345,7 @@
   }
   function guardSuspended() {
     if (!isSuspended()) return true;
-    toast('Tu cuenta está suspendida. No puedes publicar ni pedir viajes. Escríbele al administrador.');
+    toast('Tu cuenta está suspendida. No puedes publicar. Escríbele al administrador.');
     return false;
   }
   function getMyProfile() {
@@ -1404,7 +1395,7 @@
 
   /* ---------- Para ti: la app aprende de lo que te gusta ----------
      Solo tus propios datos, en localStorage (`pegaoxl_tastes`: puntos
-     por categoría y por tipo fiesta/negocio/chofer) y, si estás
+     por categoría y por tipo fiesta/negocio) y, si estás
      registrado, también en tu perfil de Firestore (campo `tastes`)
      para que te siga en otro teléfono. Sin IA externa, sin costo. */
   function getTastes() { return load('pegaoxl_tastes', { categories: {}, types: {}, updatedAt: 0 }); }
@@ -1429,7 +1420,7 @@
   function targetOf(kind, id) {
     if (kind === 'fiesta') return parties().find(function (x) { return x.id === id; });
     if (kind === 'negocio') return businesses().find(function (x) { return x.id === id; });
-    return drivers().find(function (x) { return x.id === id; });
+    return null; /* v18: ningún tipo desconocido resuelve */
   }
   function recordTasteForTarget(kind, id, points) {
     try {
@@ -2016,7 +2007,7 @@
     try {
       var q = ($('#feedSearch').value || '').toLowerCase();
       if (q.length >= 3) {
-        ['Fiesta', 'Restaurante', 'Servicio de Comida', 'Bar', 'Discoteca', 'Centro Nocturno', 'Influencer', 'Cantante', 'Bailarín', 'MIPYME', 'UBER'].forEach(function (c) {
+        ['Fiesta', 'Restaurante', 'Servicio de Comida', 'Bar', 'Discoteca', 'Centro Nocturno', 'Influencer', 'Cantante', 'Bailarín', 'MIPYME'].forEach(function (c) {
           if (q.indexOf(c.toLowerCase()) >= 0) recordTaste(c, null, 1);
         });
       }
@@ -2381,7 +2372,7 @@
     var list = reviews();
     if (!mine) list.unshift(obj);
     save('pegaoxl_reviews', list);
-    renderFeed(); renderDrivers(); renderReputation();
+    renderFeed(); renderReputation();
     toast(mine ? 'Reseña actualizada' : 'Reseña guardada');
     recordTasteForTarget(kind, id, stars);
     if (isCloud()) cloudPut('reviews', obj);
@@ -2396,7 +2387,7 @@
     var list = comments();
     list.unshift(obj);
     save('pegaoxl_comments', list);
-    renderFeed(); renderDrivers();
+    renderFeed();
     toast('Comentario publicado');
     recordTasteForTarget(kind, id, 2);
     if (isCloud()) cloudPut('comments', obj);
@@ -2424,11 +2415,8 @@
       var b = businesses().find(function (x) { return x.id === id; }); if (!b) return null;
       base = b.name + '\n📍 ' + b.place + (b.services ? ' · ' + b.services : '');
       return link ? (base + '\nMíralo en PEGAO XL: ' + link) : base;
-    } else {
-      var d = drivers().find(function (x) { return x.id === id; }); if (!d) return null;
-      base = d.name + ' · ' + d.car + ' · ' + d.phone + ' · Chofer PEGAO XL';
-      return link ? (base + '\nMíralo en PEGAO XL: ' + link) : base;
     }
+    return null;
   }
   /* ¿Puede este teléfono compartir archivos (p. ej. el flyer como
      imagen) con navigator.share? Si no, se comparte solo texto. */
@@ -2939,7 +2927,6 @@
     L.control.zoom({ position: 'bottomright' }).addTo(map); /* abajo a la derecha, fuera del buscador y los chips */
     map.on('zoomend', updateBaseLayer);
     markersLayer = L.layerGroup().addTo(map);
-    trackingLayer = L.layerGroup().addTo(map); /* pines en vivo: choferes y recogidas */
     renderMapMarkers();
     locateMe(false);
   }
@@ -2975,7 +2962,6 @@
   function mapCatOf(kind, x) { return catOf(x, kind === 'fiesta' ? 'Fiesta' : 'Otro'); }
   function mapItemVisible(kind, x) {
     if (mapCatFilter === 'todas') return true;
-    if (mapCatFilter === 'UBER') return false; /* UBER = choferes, que ya están en azul */
     return mapCatOf(kind, x) === mapCatFilter;
   }
   function mapCardDistance(x) {
@@ -3047,78 +3033,7 @@
       for (var i = 0; i < all.length; i++) { if (all[i].x.id === mapCardId) { found = all[i]; break; } }
       if (!found || !mapItemVisible(found.kind, found.x)) hideMapCard();
     }
-    renderTrackingMarkers();
   }
-  /* Pines de seguimiento en vivo, en su propia capa para limpiarlos sin
-     tocar los pines de fiestas. Sin lat/lng reales no hay pin.
-     Quién ve qué (regla del usuario):
-     - Cliente (sin perfil de chofer): ve TODOS los choferes en azul y
-       solo el rojo de SUS propios viajes activos (ride.by = su nombre).
-     - Chofer: solo ve el rojo de SUS clientes activos y su propio pin
-       azul ("Tú"). No ve otros choferes ni otros clientes. */
-  function mapMode() { return myDriverProfile() ? 'chofer' : 'cliente'; }
-  function renderMapLegend() {
-    var el = document.getElementById('mapLegend'); if (!el) return;
-    if (mapMode() === 'chofer') {
-      el.innerHTML = '<span class="dot-red"></span> Rojo: tu cliente esperando &nbsp;·&nbsp; <span class="dot-blue"></span> Azul: tú';
-    } else {
-      el.innerHTML = '<span class="dot-blue"></span> Azul: transportes en vivo &nbsp;·&nbsp; <span class="dot-red"></span> Rojo: tu recogida';
-    }
-  }
-  function renderTrackingMarkers() {
-    renderMapLegend();
-    if (!map || !trackingLayer) return;
-    trackingLayer.clearLayers();
-    var profile = myDriverProfile();
-    var u = currentUser();
-    if (profile) {
-      /* Modo chofer: solo su propio pin azul y sus recogidas. */
-      if (isFinite(profile.lat) && isFinite(profile.lng)) {
-        L.circleMarker([profile.lat, profile.lng], { radius: 9, color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.9 })
-          .addTo(trackingLayer)
-          .bindPopup('<b>Tú · ' + esc(profile.name) + '</b><br>' + esc(profile.car) + '<br>Estado: ' + esc(profile.status || 'DISPONIBLE'));
-      }
-      rides().forEach(function (r) {
-        if ((r.status !== 'En camino' && r.status !== 'Aceptado') || r.driverId !== profile.id) return;
-        if (!isFinite(r.pickupLat) || !isFinite(r.pickupLng)) return;
-        L.circleMarker([r.pickupLat, r.pickupLng], { radius: 9, color: '#e11d48', weight: 2, fillColor: '#e11d48', fillOpacity: 0.9 })
-          .addTo(trackingLayer)
-          .bindPopup('<b>Recogida: ' + esc(r.from) + '</b><br>Cliente esperando');
-      });
-      return;
-    }
-    /* Modo cliente: todos los choferes en azul; rojo solo de sus viajes.
-       El popup del chofer lleva el botón "Solicitar" (el más cercano
-       se elige en el mapa y se pide desde ahí). */
-    drivers().forEach(function (d) {
-      if (!isFinite(d.lat) || !isFinite(d.lng)) return;
-      var busy = d.status === 'OCUPADO';
-      var popup = '<b>' + esc(d.name) + '</b><br>' + esc(d.car) + '<br>Estado: ' + esc(d.status || 'DISPONIBLE');
-      if (!busy && !isMyDriver(d)) popup += '<br><button type="button" class="mini-btn" data-map-ride="' + d.id + '">🚗 Solicitar</button>';
-      L.circleMarker([d.lat, d.lng], { radius: 9, color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.9 })
-        .addTo(trackingLayer)
-        .bindPopup(popup);
-    });
-    if (u) {
-      rides().forEach(function (r) {
-        if ((r.status !== 'En camino' && r.status !== 'Aceptado') || r.by !== u.name) return;
-        if (!isFinite(r.pickupLat) || !isFinite(r.pickupLng)) return;
-        L.circleMarker([r.pickupLat, r.pickupLng], { radius: 9, color: '#e11d48', weight: 2, fillColor: '#e11d48', fillOpacity: 0.9 })
-          .addTo(trackingLayer)
-          .bindPopup('<b>Recogida: ' + esc(r.from) + '</b><br>Cliente esperando');
-      });
-    }
-  }
-  /* "Solicitar" desde el popup del mapa (el popup lo pinta Leaflet,
-     así que el clic se caza por delegación en el documento). */
-  document.addEventListener('click', function (e) {
-    try {
-      if (!e.target || !e.target.closest) return;
-      var b = e.target.closest('[data-map-ride]');
-      if (!b) return;
-      requestRide(b.getAttribute('data-map-ride'));
-    } catch (err) {}
-  });
   function locateMe(announce) {
     if (!map) return;
     var done = function (lat, lng) {
@@ -3453,7 +3368,7 @@
   bizPicker = createPinPicker({ mapEl: 'bizPinMap', statusEl: 'bizPinStatus', gpsBtn: 'bizPinGps' });
 
   /* Chips de categoría del mapa (v15): filtran qué publicaciones se
-     ven en el mapa. "UBER" deja solo los choferes en azul. */
+     ven en el mapa (fiestas y negocios). */
   $$('.map-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
       $$('.map-chip').forEach(function (c) { c.classList.remove('active'); });
@@ -3468,14 +3383,10 @@
     if (e.key === 'Enter') { e.preventDefault(); $('#mapSearchBtn').click(); }
   });
 
-  /* ---------- Ubicación en vivo (seguimiento de transportes) ----------
-     Solo el chofer registrado comparte su ubicación, y solo mientras su
-     perfil de chofer existe. El cliente solo aparece en el mapa mientras
-     su viaje está "En camino". Sin GPS real no hay pin: nada inventado.
-     Se usa el plugin Capacitor Geolocation si existe y, si no, el
-     geolocation del navegador. Para no saturar Firestore, la ubicación
-     del chofer solo se escribe si se movió más de 15 metros o pasaron
-     más de 10 segundos desde la última escritura. */
+  /* ---------- Ubicación del dispositivo ----------
+     Helpers de ubicación para el mapa y el selector de pin: el plugin
+     Capacitor Geolocation si existe y, si no, el geolocation del
+     navegador. Sin GPS real no hay pin: nada inventado. */
   function geoPlugin() {
     try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) || null; }
     catch (e) { return null; }
@@ -3516,312 +3427,6 @@
       fail();
     });
   }
-  var locWatchId = null, locWatchMode = null, locWatchDriverId = null, locWatchToken = 0;
-  var lastLocWrite = null; /* {lat, lng, at} de la última escritura */
-  var locDeniedToastShown = false;
-  function myDriverProfile() {
-    var u = currentUser(); if (!u) return null;
-    return drivers().find(function (d) { return d.name === u.name; }) || null;
-  }
-  function writeDriverLocation(driverId, lat, lng) {
-    if (isCloud()) {
-      db.collection('drivers').doc(driverId).update({ lat: lat, lng: lng, locAt: Date.now() }).catch(function () {});
-      return;
-    }
-    var ds = drivers();
-    ds.forEach(function (x) { if (x.id === driverId) { x.lat = lat; x.lng = lng; x.locAt = Date.now(); } });
-    save('pegaoxl_drivers', ds);
-  }
-  function onDriverPosition(pos) {
-    var profile = myDriverProfile();
-    if (!profile || !pos || !pos.coords) return;
-    var lat = pos.coords.latitude, lng = pos.coords.longitude;
-    if (!isFinite(lat) || !isFinite(lng)) return;
-    var now = Date.now();
-    if (lastLocWrite) {
-      var moved = distMeters(lastLocWrite.lat, lastLocWrite.lng, lat, lng);
-      if (moved < 15 && (now - lastLocWrite.at) < 10000) return;
-    }
-    lastLocWrite = { lat: lat, lng: lng, at: now };
-    writeDriverLocation(profile.id, lat, lng);
-  }
-  function onDriverPositionError(err) {
-    var denied = err && (err.code === 1 || (err.message && /denied|permission/i.test(String(err.message))));
-    if (denied) {
-      if (!locDeniedToastShown) {
-        locDeniedToastShown = true;
-        toast('Activa la ubicación para que te vean en el mapa');
-      }
-      stopDriverTracking();
-    }
-    /* Otros errores (GPS sin señal, timeout): se ignoran y el watch sigue. */
-  }
-  function startDriverTracking() {
-    if (locWatchId !== null) return;
-    var profile = myDriverProfile(); if (!profile) return;
-    locWatchDriverId = profile.id;
-    var gp = geoPlugin();
-    if (gp && gp.watchPosition) {
-      try {
-        locWatchMode = 'capacitor';
-        locWatchId = 'pending';
-        var myToken = ++locWatchToken;
-        var p = gp.watchPosition({ enableHighAccuracy: true }, function (pos, err) {
-          if (err) { onDriverPositionError(err); return; }
-          onDriverPosition(pos);
-        });
-        if (p && p.then) {
-          p.then(function (id) {
-            if (myToken !== locWatchToken) {
-              /* Ya se pidió parar o se arrancó otro watch: limpiar este. */
-              if (gp.clearWatch) gp.clearWatch({ id: id }).catch(function () {});
-            } else if (locWatchId === 'pending') {
-              locWatchId = id;
-            }
-          }).catch(function () { if (locWatchId === 'pending') locWatchId = null; });
-        }
-        return;
-      } catch (e) { locWatchId = null; locWatchMode = null; }
-    }
-    if (navigator.geolocation) {
-      try {
-        locWatchMode = 'browser';
-        locWatchId = navigator.geolocation.watchPosition(onDriverPosition, onDriverPositionError, { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
-      } catch (e) { locWatchId = null; locWatchMode = null; }
-    }
-  }
-  function stopDriverTracking() {
-    if (locWatchId === null) return;
-    var id = locWatchId, mode = locWatchMode;
-    locWatchToken++;
-    locWatchId = null; locWatchMode = null; locWatchDriverId = null; lastLocWrite = null;
-    if (id === 'pending') return; /* se limpia solo al resolverse la promesa */
-    try {
-      if (mode === 'capacitor') {
-        var gp = geoPlugin();
-        if (gp && gp.clearWatch) gp.clearWatch({ id: id }).catch(function () {});
-      } else if (navigator.geolocation) {
-        navigator.geolocation.clearWatch(id);
-      }
-    } catch (e) { /* nunca rompe nada */ }
-  }
-  function syncDriverTracking() {
-    var profile = myDriverProfile();
-    if (!profile) { stopDriverTracking(); return; }
-    if (locWatchId !== null && locWatchDriverId === profile.id) return; /* ya se sigue este perfil */
-    stopDriverTracking();
-    startDriverTracking();
-  }
-
-  /* ---------- Choferes ---------- */
-  function drivers() { return load('pegaoxl_drivers', []); }
-  function rides() { return load('pegaoxl_rides', []); }
-  function deleteDriver(id) {
-    var list = drivers();
-    var removed = null;
-    var kept = list.filter(function (d) { if (d.id === id) { removed = d; return false; } return true; });
-    if (!removed) return;
-    save('pegaoxl_drivers', kept);
-    renderDrivers();
-    if (isCloud()) {
-      var p = cloudDelete('drivers', id);
-      if (p && p.catch) {
-        toast('Chofer borrado');
-        p.catch(function () {
-          var back = drivers(); back.unshift(removed); save('pegaoxl_drivers', back);
-          renderDrivers(); toast('No se pudo borrar en la nube, el chofer volvió');
-        });
-      } else {
-        var back2 = drivers(); back2.unshift(removed); save('pegaoxl_drivers', back2);
-        renderDrivers(); toast('No se pudo borrar en la nube, el chofer volvió');
-      }
-    } else {
-      /* Sin nube: lápida, se borra de la nube al conectar. */
-      deleteDocEverywhere('drivers', id);
-      toast('Chofer borrado: se quitará de la nube al conectar');
-    }
-  }
-  function deleteRide(id) {
-    var list = rides();
-    var target = list.find(function (r) { return r.id === id; });
-    /* Solo el cliente o el chofer de ese viaje pueden borrarlo. */
-    if (!target || !canSeeRide(target)) { toast('No puedes borrar este viaje'); return; }
-    var removed = null;
-    var kept = list.filter(function (r) { if (r.id === id) { removed = r; return false; } return true; });
-    if (!removed) return;
-    save('pegaoxl_rides', kept);
-    renderDrivers();
-    if (isCloud()) {
-      var p = cloudDelete('rides', id);
-      if (p && p.catch) {
-        toast('Solicitud borrada');
-        p.catch(function () {
-          var back = rides(); back.unshift(removed); save('pegaoxl_rides', back);
-          renderDrivers(); toast('No se pudo borrar en la nube, la solicitud volvió');
-        });
-      } else {
-        var back2 = rides(); back2.unshift(removed); save('pegaoxl_rides', back2);
-        renderDrivers(); toast('No se pudo borrar en la nube, la solicitud volvió');
-      }
-    } else {
-      /* Sin nube: lápida, se borra de la nube al conectar. */
-      deleteDocEverywhere('rides', id);
-      toast('Solicitud borrada: se quitará de la nube al conectar');
-    }
-  }
-
-  /* Visibilidad de "Mis solicitudes de viaje": un viaje solo lo ve
-     su cliente (ride.by = su nombre) o su chofer (ride.driverId =
-     el id de su perfil de chofer). Los viajes viejos (antes de v6)
-     no tienen `by`: esos solo los ve su chofer. El mapa ya tenía
-     esta regla desde v6; la lista no, y la tenía pendiente. */
-  function canSeeRide(r) {
-    if (!r) return false;
-    var u = currentUser();
-    if (u && r.by && r.by === u.name) return true;
-    var profile = myDriverProfile();
-    if (profile && r.driverId === profile.id) return true;
-    return false;
-  }
-  function isMyDriver(d) {
-    var profile = myDriverProfile();
-    return !!(profile && d && profile.id === d.id);
-  }
-
-  function renderDrivers() {
-    var ds = drivers(), rs = rides();
-    /* El más cercano primero, cuando se sabe dónde estás. */
-    if (myLatLng) {
-      ds = ds.slice().sort(function (a, b) {
-        var da = (isFinite(a.lat) && isFinite(a.lng)) ? distMeters(myLatLng.lat, myLatLng.lng, a.lat, a.lng) : Infinity;
-        var db = (isFinite(b.lat) && isFinite(b.lng)) ? distMeters(myLatLng.lat, myLatLng.lng, b.lat, b.lng) : Infinity;
-        return da - db;
-      });
-    }
-    $('#driverEmpty').style.display = ds.length ? 'none' : '';
-    $('#driverList').innerHTML = ds.map(function (d) {
-      var busy = d.status === 'OCUPADO';
-      var prof = authorProfile(d.name, d.byId);
-      var profTag = (prof && prof.category && prof.category !== 'Otro') ? '<span class="tag">' + esc(prof.category) + '</span>' : '';
-      var distTxt = '';
-      if (myLatLng && isFinite(d.lat) && isFinite(d.lng)) {
-        var m = distMeters(myLatLng.lat, myLatLng.lng, d.lat, d.lng);
-        distTxt = '<p>📍 A ' + (m < 1000 ? Math.round(m) + ' m de ti' : (m / 1000).toFixed(1) + ' km de ti') + '</p>';
-      }
-      return '<article class="driver-card">' +
-        '<div class="post-head">' + avatarHtml(d.name, d.byId) +
-        '<div class="post-meta"><strong>' + esc(authorDisplayName(d.name, d.byId)) + '</strong>' +
-        '<span class="post-sub"><span class="status-dot ' + (busy ? 'status-busy' : 'status-ok') + '"></span><strong>' + (busy ? 'OCUPADO' : 'DISPONIBLE') + '</strong> ' + profTag + '<span class="tag tag-cat">UBER</span></span></div></div>' +
-        '<div class="post-body"><h3>' + esc(d.car) + '</h3><p>Contacto: ' + esc(d.phone) + '</p>' + (d.zone ? '<p>Zona base: ' + esc(d.zone) + '</p>' : '') + distTxt + '</div>' +
-        '<p class="post-stats"><span class="rating">' + ratingLine('chofer', d.id) + '</span></p>' +
-        '<div class="card-actions">' + (busy ? (isMyDriver(d) ? '<button type="button" class="btn-done" data-finish="' + d.id + '">Terminar viaje</button>' : '') : '<button type="button" class="btn-ride" data-ride="' + d.id + '">🚗 Solicitar</button>') +
-        '<button type="button" class="btn-danger" data-del-driver="' + d.id + '">Borrar</button></div>' +
-        '<div class="ig-actions">' +
-        '<button type="button" class="ig-action" data-review="chofer:' + d.id + '" aria-label="Dejar reseña">' + ICON_STAR + '<span>Reseña</span></button>' +
-        '<button type="button" class="ig-action" data-comment="chofer:' + d.id + '" aria-label="Comentar">' + ICON_COMMENT + '<span>Comentar</span></button>' +
-        '<button type="button" class="ig-action" data-share="chofer:' + d.id + '" aria-label="Compartir">' + ICON_SEND + '<span>Compartir</span></button>' +
-        '</div>' +
-        '<div class="panel" id="panel-chofer-' + d.id + '"></div></article>';
-    }).join('');
-    var visibleRides = rs.filter(canSeeRide);
-    $('#rideEmpty').style.display = visibleRides.length ? 'none' : '';
-    $('#rideList').innerHTML = visibleRides.map(function (r) {
-      return '<article class="ride-card"><span class="tag">Viaje</span><h3>' + esc(r.driverName) + ' · ' + esc(r.car) + '</h3>' +
-        '<p>Estado: <strong>' + esc(r.status) + '</strong></p><p>' + esc(r.from) + '</p>' +
-        '<div class="card-actions"><button type="button" class="btn-danger" data-del-ride="' + r.id + '">Borrar</button></div></article>';
-    }).join('');
-    $$('[data-ride]').forEach(function (b) { b.addEventListener('click', function () { requestRide(b.getAttribute('data-ride')); }); });
-    $$('[data-finish]').forEach(function (b) { b.addEventListener('click', function () { finishRide(b.getAttribute('data-finish')); }); });
-    $$('[data-del-driver]').forEach(function (b) { b.addEventListener('click', function () { deleteDriver(b.getAttribute('data-del-driver')); }); });
-    $$('[data-del-ride]').forEach(function (b) { b.addEventListener('click', function () { deleteRide(b.getAttribute('data-del-ride')); }); });
-    bindCardButtons($('#tab-ubers'));
-    restorePanels();
-    syncDriverTracking(); /* si el usuario es chofer, seguir su ubicación */
-    renderTrackingMarkers();
-    safeStep(checkNewRidesForMe); /* ride nuevo para mí → alarma */
-  }
-  function requestRide(driverId) {
-    if (!guardAction()) return;
-    if (!guardSuspended()) return;
-    var d = drivers().find(function (x) { return x.id === driverId; });
-    if (!d) return;
-    if (d.status === 'OCUPADO') { toast('Ese chofer está ocupado'); return; }
-    /* Que quede clarísimo qué pasa: al chofer le suena una alarma y
-       puede aceptar o rechazar. */
-    if (!confirm('¿Solicitar a ' + d.name + '? Le sonará una alarma y podrá aceptar o rechazar.')) return;
-    var from = prompt('¿Desde dónde te recojo?', 'Artemisa');
-    if (from === null) return;
-    /* Primero se lee la ubicación del cliente (una sola vez) para
-       marcar el punto de recogida en el mapa; si no se puede, el
-       viaje se crea igual y el chofer llama al cliente. */
-    getCurrentPositionOnce().then(function (pickup) {
-      createRide(d, from || 'Sin lugar', pickup);
-    });
-  }
-  function createRide(d, from, pickup) {
-    var u = currentUser();
-    var ride = { id: uid(), driverId: d.id, driverName: d.name, car: d.car, from: from, by: u ? u.name : null, byId: u ? profileIdOf(u) : null, status: 'En camino', at: Date.now(), pending: isCloud() };
-    if (pickup) { ride.pickupLat = pickup.lat; ride.pickupLng = pickup.lng; }
-    var noLoc = !pickup;
-    /* Optimista: el viaje se ve al instante; la nube va por detrás. */
-    var ds = drivers(); ds.forEach(function (x) { if (x.id === d.id) { x.status = 'OCUPADO'; if (isCloud()) x.pending = true; } });
-    save('pegaoxl_drivers', ds);
-    var rs = rides(); rs.unshift(ride);
-    save('pegaoxl_rides', rs); renderDrivers(); renderTrackingMarkers();
-    toast(noLoc ? 'Solicitud enviada sin ubicación, el chofer te llamará' : 'Solicitud enviada, esperando a ' + d.name + ' 🚗');
-    recordTaste('UBER', 'chofer', 2);
-    safeStep(function () { notifyDriverOfRide(ride); }); /* aviso push al chofer (si el endpoint existe) */
-    if (isCloud()) {
-      try { db.collection('drivers').doc(d.id).update({ status: 'OCUPADO' }).catch(function () {}); } catch (e) {}
-      cloudPut('rides', ride);
-    }
-  }
-  function finishRide(driverId) {
-    /* Solo el chofer asignado puede terminar su viaje. */
-    var profile = myDriverProfile();
-    if (!profile || profile.id !== driverId) { toast('Solo el chofer de ese viaje puede terminarlo'); return; }
-    var ds = drivers(); ds.forEach(function (x) { if (x.id === driverId) { x.status = 'DISPONIBLE'; if (isCloud()) x.pending = true; } });
-    save('pegaoxl_drivers', ds);
-    var rs = rides(); rs.forEach(function (r) { if (r.driverId === driverId && (r.status === 'En camino' || r.status === 'Aceptado')) { r.status = 'Terminado'; if (isCloud()) r.pending = true; } });
-    save('pegaoxl_rides', rs); renderDrivers(); toast('Viaje terminado, chofer disponible ✓');
-    if (isCloud()) {
-      try {
-        db.collection('drivers').doc(driverId).update({ status: 'DISPONIBLE' }).catch(function () {});
-        db.collection('rides').where('driverId', '==', driverId).get()
-          .then(function (snap) {
-            var jobs = [];
-            snap.forEach(function (doc) { var d = doc.data() || {}; if (d.status === 'En camino' || d.status === 'Aceptado') jobs.push(doc.ref.update({ status: 'Terminado' })); });
-            return Promise.all(jobs);
-          })
-          .catch(function () {});
-      } catch (e) {}
-    }
-  }
-  $('#driverForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    try {
-      if (!guardAction()) return;
-      var u = currentUser();
-      var f = e.target;
-      /* Validación en JS (el form lleva novalidate): la validación
-         nativa del navegador bloqueaba el envío en silencio. */
-      var dName = (f.elements['name'].value || '').trim();
-      var dCar = (f.elements['car'].value || '').trim();
-      var dPhone = (f.elements['phone'].value || '').trim();
-      var dZone = (f.elements['zone'].value || '').trim();
-      if (!dName) { toast('Pon tu nombre'); return; }
-      if (!dCar) { toast('Pon tu carro'); return; }
-      if (!dPhone) { toast('Pon tu teléfono o contacto'); return; }
-      if (!dZone) { toast('Pon tu zona base'); return; }
-      var obj = { id: uid(), name: dName, car: dCar, phone: dPhone, zone: dZone, status: 'DISPONIBLE', category: 'UBER', by: u ? u.name : null, byId: u ? profileIdOf(u) : null, at: Date.now(), pending: isCloud() };
-      var ds = drivers(); ds.unshift(obj);
-      save('pegaoxl_drivers', ds); f.reset(); renderDrivers();
-      clearLastError(); renderLastError();
-      toast('¡Registrado como chofer! 🚗');
-      if (isCloud()) cloudPut('drivers', obj);
-    } catch (err) { reportError('registrar chofer', err); }
-  });
-
   /* ---------- 3D interactivo: las tarjetas y el hero siguen al dedo/mouse ---------- */
   function addTilt(el, max) {
     if (!el) return;
@@ -3836,7 +3441,7 @@
   }
   document.querySelectorAll('.hero').forEach(function (h) { addTilt(h, 6); });
   document.addEventListener('mouseover', function (e) {
-    var c = e.target.closest && e.target.closest('.party-card,.biz-card,.driver-card');
+    var c = e.target.closest && e.target.closest('.party-card,.biz-card');
     if (c && !c.dataset.tilt) { c.dataset.tilt = '1'; addTilt(c, 8); }
   });
 
@@ -3851,7 +3456,7 @@
      ApkInstaller.installApk; si no, abre la descarga con window.open
      para que el sistema la baje y el usuario toque Instalar. Nunca se
      descarga nada sin que el usuario toque el botón. */
-  var APP_VERSION = 'v17';
+  var APP_VERSION = 'v18';
   var VERSION_URL = 'https://pegaony.github.io/pegao-xl/version.json';
   var UPDATE_CHECK_TIMEOUT_MS = 5000;
   var updateInfo = null, updateLastCheck = 0;
@@ -3933,164 +3538,6 @@
   var updateBtnEl = document.getElementById('updateBtn');
   if (updateBtnEl) updateBtnEl.addEventListener('click', startUpdate);
 
-  /* ---------- Alarma de solicitud para el chofer ----------
-     Cuando un cliente solicita a un chofer DISPONIBLE, al chofer le
-     suena una alarma fuerte y repetida (Web Audio, dos tonos) con
-     vibración larga y una pantalla de alerta a toda pantalla con
-     Aceptar / Rechazar grandes. La alarma solo se apaga con Aceptar o
-     Rechazar (o si el viaje deja de estar en camino). El chofer ya
-     escucha sus rides por snapshot: aquí se detecta el ride NUEVO
-     (los viejos al abrir la app no disparan la alarma). Con la app en
-     segundo plano o el teléfono bloqueado la alarma no puede sonar:
-     para eso queda el aviso push (notify-ride, ver abajo y el reporte). */
-  var alarmAudioCtx = null, alarmTimer = null, alarmVibrateTimer = null, alarmRideId = null, audioUnlocked = false;
-  function ensureAudioCtx() {
-    try {
-      if (!alarmAudioCtx) {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        alarmAudioCtx = new AC();
-      }
-      if (alarmAudioCtx.state === 'suspended') alarmAudioCtx.resume();
-      return alarmAudioCtx;
-    } catch (e) { return null; }
-  }
-  /* El audio del navegador solo arranca tras un gesto del usuario: se
-     desbloquea con el primer toque en la pantalla. */
-  document.addEventListener('pointerdown', function () {
-    if (!audioUnlocked) { audioUnlocked = true; safeStep(ensureAudioCtx); }
-  });
-  function alarmBeep() {
-    var ctx = ensureAudioCtx(); if (!ctx) return;
-    try {
-      [660, 880, 660, 880].forEach(function (freq, i) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.type = 'sine'; o.frequency.value = freq;
-        var t0 = ctx.currentTime + i * 0.22;
-        g.gain.setValueAtTime(0.0001, t0);
-        g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(t0); o.stop(t0 + 0.22);
-      });
-    } catch (e) {}
-  }
-  function alarmState() { return { ringing: !!alarmRideId, rideId: alarmRideId }; }
-  function showRideAlarmOverlay(ride) {
-    try {
-      var box = document.getElementById('rideAlarmInner'), wrap = document.getElementById('rideAlarm');
-      if (!box || !wrap) return;
-      box.innerHTML = '<p class="ride-alarm-kicker">🚨 ¡NUEVA SOLICITUD!</p>' +
-        '<h2>' + esc(ride.by || 'Un cliente') + '</h2>' +
-        '<p class="ride-alarm-pickup">Recogida: <strong>' + esc(ride.from || 'Sin lugar') + '</strong></p>' +
-        '<p class="muted">Te está esperando. Responde para apagar la alarma.</p>' +
-        '<button type="button" class="ride-alarm-accept" id="rideAlarmAccept">✅ Aceptar viaje</button>' +
-        '<button type="button" class="ride-alarm-reject" id="rideAlarmReject">✖ Rechazar</button>';
-      wrap.classList.remove('hidden');
-      var a = document.getElementById('rideAlarmAccept');
-      if (a) a.addEventListener('click', function () { acceptRide(ride.id); });
-      var r = document.getElementById('rideAlarmReject');
-      if (r) r.addEventListener('click', function () { rejectRide(ride.id); });
-    } catch (e) {}
-  }
-  function hideRideAlarmOverlay() {
-    try { var w = document.getElementById('rideAlarm'); if (w) w.classList.add('hidden'); } catch (e) {}
-  }
-  function startRideAlarm(ride) {
-    try {
-      if (!ride || !ride.id) return;
-      if (alarmRideId === ride.id) return; /* ya suena para este viaje */
-      stopRideAlarm(true);
-      alarmRideId = ride.id;
-      alarmBeep();
-      alarmTimer = setInterval(alarmBeep, 1200);
-      var buzz = function () { try { if (navigator.vibrate) navigator.vibrate([800, 300, 800, 300, 800]); } catch (e) {} };
-      buzz();
-      alarmVibrateTimer = setInterval(buzz, 4000);
-      showRideAlarmOverlay(ride);
-    } catch (e) {}
-  }
-  function stopRideAlarm(keepOverlay) {
-    try {
-      alarmRideId = null;
-      if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; }
-      if (alarmVibrateTimer) { clearInterval(alarmVibrateTimer); alarmVibrateTimer = null; }
-      try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
-      if (!keepOverlay) hideRideAlarmOverlay();
-    } catch (e) {}
-  }
-  function acceptRide(id) {
-    stopRideAlarm();
-    var rs = rides();
-    var ride = rs.filter(function (r) { return r.id === id; })[0];
-    if (!ride) return;
-    ride.status = 'Aceptado'; if (isCloud()) ride.pending = true;
-    save('pegaoxl_rides', rs);
-    if (isCloud()) { try { db.collection('rides').doc(id).update({ status: 'Aceptado' }).catch(function () {}); } catch (e) {} }
-    renderDrivers(); toast('Viaje aceptado, ve por el cliente 🚗');
-  }
-  function rejectRide(id) {
-    stopRideAlarm();
-    var rs = rides();
-    var ride = rs.filter(function (r) { return r.id === id; })[0];
-    if (!ride) return;
-    ride.status = 'Rechazado'; if (isCloud()) ride.pending = true;
-    save('pegaoxl_rides', rs);
-    var ds = drivers();
-    ds.forEach(function (x) { if (x.id === ride.driverId) { x.status = 'DISPONIBLE'; if (isCloud()) x.pending = true; } });
-    save('pegaoxl_drivers', ds);
-    if (isCloud()) {
-      try {
-        db.collection('rides').doc(id).update({ status: 'Rechazado' }).catch(function () {});
-        db.collection('drivers').doc(ride.driverId).update({ status: 'DISPONIBLE' }).catch(function () {});
-      } catch (e) {}
-    }
-    renderDrivers(); toast('Solicitud rechazada');
-  }
-  /* Detecta el ride nuevo del chofer: la primera vez solo marca los
-     que ya había (sin alarmar); después, cada ride nuevo en camino
-     dispara la alarma. Si el ride alarmado deja de estar en camino,
-     la alarma se apaga sola. */
-  var seenRideIds = null;
-  function checkNewRidesForMe() {
-    try {
-      var profile = myDriverProfile();
-      if (!profile) { seenRideIds = null; return; }
-      var mine = rides().filter(function (r) { return r.driverId === profile.id && r.status === 'En camino'; });
-      if (seenRideIds === null) {
-        seenRideIds = {};
-        mine.forEach(function (r) { seenRideIds[r.id] = true; });
-        return;
-      }
-      var fresh = null;
-      mine.forEach(function (r) {
-        if (!seenRideIds[r.id]) {
-          seenRideIds[r.id] = true;
-          if (!fresh && (!r.at || (Date.now() - r.at) < 10 * 60 * 1000)) fresh = r;
-        }
-      });
-      if (alarmRideId) {
-        var still = mine.some(function (r) { return r.id === alarmRideId; });
-        if (!still) { stopRideAlarm(); return; }
-      }
-      if (fresh) startRideAlarm(fresh);
-    } catch (e) {}
-  }
-  /* Aviso push al chofer (preparación): después de crear el ride, la
-     app del cliente avisa al Worker para que le mande la notificación
-     al chofer. El endpoint /notify-ride todavía NO existe: si falla o
-     no existe, no pasa nada y la alarma en primer plano sigue siendo
-     el mecanismo principal. */
-  function notifyDriverOfRide(ride) {
-    try {
-      if (!window.fetch || !ride) return;
-      var d = drivers().filter(function (x) { return x.id === ride.driverId; })[0];
-      var driverUid = (d && d.byId) || ride.driverId;
-      var body = { driverUid: driverUid, rideId: ride.id, clientName: ride.by || 'Cliente', pickup: ride.from || '' };
-      fetch(MIRROR_URL + 'notify-ride', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(function () {});
-    } catch (e) {}
-  }
-
   /* ---------- Favoritos (privado, sin seguidores) ----------
      Cada fiesta y cada negocio tiene su botón "Favorito" (estrella).
      Es solo para este usuario: localStorage y, si hay nube, en su
@@ -4111,6 +3558,7 @@
     else { list.unshift({ kind: kind, id: id, at: Date.now() }); added = true; }
     save('pegaoxl_favorites', list);
     syncFavoritesToProfile();
+    if (kind === 'fiesta') refreshEventRemindersFor(kind, id); /* v18: aviso el día del evento */
     renderFeed();
     if (partyDetailId) renderPartyDetail(partyDetailId);
     toast(added ? 'Agregado a favoritos ⭐' : 'Quitado de favoritos');
@@ -4156,15 +3604,17 @@
       } catch (e) {}
     }
     renderFeed(); renderSaved();
+    if (kind === 'fiesta') refreshEventRemindersFor(kind, id); /* v18: aviso el día del evento */
     if (partyDetailId) renderPartyDetail(partyDetailId);
     toast(added ? 'Guardado ✓' : 'Quitado de Guardados');
   }
 
   /* ---------- Me interesa y recordatorio de fiesta ----------
-     "Me interesa" en cada fiesta. El día del evento la app avisa:
-     con el plugin de notificaciones locales (si está instalado) se
-     programa el aviso; sin plugin, al abrir la app ese día sale el
-     aviso en pantalla. Todo local, sin servidor. */
+     "Me interesa" en cada fiesta, y desde v18 también las favoritas
+     y las guardadas. El día del evento la app avisa: con el plugin de
+     notificaciones locales (si está instalado) se programa el aviso;
+     sin plugin, al abrir la app ese día sale el aviso en pantalla.
+     Todo local, sin servidor. */
   function interestedMap() { return load('pegaoxl_interested', {}); }
   function isInterested(id) { return !!interestedMap()[id]; }
   function toggleInterest(id) {
@@ -4176,7 +3626,7 @@
     if (map[id]) { delete map[id]; added = false; }
     else { map[id] = { title: p.desc, date: p.date, time: p.time, place: p.place }; added = true; }
     save('pegaoxl_interested', map);
-    if (added) scheduleInterestReminder(id, map[id]);
+    refreshEventRemindersFor('fiesta', id); /* v18: mismo aviso, una sola vez aunque sea favorita/guardada */
     renderFeed();
     if (partyDetailId) renderPartyDetail(partyDetailId);
     toast(added ? 'Te avisaremos el día de la fiesta 🔔' : 'Ya no te interesa esta fiesta');
@@ -4207,18 +3657,23 @@
   /* Aviso del día sin plugin: al abrir la app, si una fiesta que te
      interesa es hoy, sale el aviso una sola vez ese día. */
   function checkInterests() {
+    /* v18: el aviso del día cubre fiestas que te interesan, favoritas
+       y guardadas (la fecha se lee de la fiesta, no del apunte viejo). */
     try {
       var map = interestedMap();
       var today = todayStr(new Date());
       var reminded = load('pegaoxl_reminded_days', {});
       var shown = [];
-      Object.keys(map).forEach(function (id) {
-        var info = map[id];
-        if (!info || info.date !== today) return;
-        if (reminded[id] === today) return;
+      var consider = function (id, title) {
+        if (!id || reminded[id] === today) return;
+        var p = parties().filter(function (x) { return x.id === id; })[0];
+        if (!p || p.date !== today) return;
         reminded[id] = today;
-        shown.push(info.title || 'Fiesta');
-      });
+        shown.push(title || p.desc || 'Fiesta');
+      };
+      Object.keys(map).forEach(function (id) { var info = map[id]; consider(id, info && info.title); });
+      favoriteItems().forEach(function (f) { if (f.kind === 'fiesta') consider(f.id); });
+      savedItems().forEach(function (s) { if (s.kind === 'fiesta') consider(s.id); });
       save('pegaoxl_reminded_days', reminded);
       if (shown.length) toast('🔔 Hoy: ' + shown.join(' · '));
     } catch (e) {}
@@ -4226,10 +3681,10 @@
 
   /* ---------- Notificaciones push (FCM, parte www) ----------
      Solo la parte web: pide permiso, registra el token y lo guarda en
-     el perfil (campo `fcmToken`) para que el Worker pueda avisar al
-     chofer. Si el plugin no está instalado todavía, no pasa nada y la
-     app sigue igual. El paso nativo (instalar el plugin en Datar) está
-     en el reporte. */
+     el perfil (campo `fcmToken`) para que el servidor pueda avisarte
+     de publicaciones nuevas y del día del evento. Si el plugin no está
+     instalado todavía, no pasa nada y la app sigue igual. El paso nativo
+     (instalar el plugin en Datar) está en el reporte. */
   function pushPlugin() {
     try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications) || null; }
     catch (e) { return null; }
@@ -4262,6 +3717,340 @@
         });
         pn.addListener('pushNotificationActionPerformed', function () { try { showTab('feed'); } catch (e) {} });
       }
+    } catch (e) {}
+  }
+
+  /* ---------- Permisos del dispositivo (v18) ----------
+     La app pide lo que necesita y explica para qué, en español, en
+     Cuenta > Permisos. Nada se pide en silencio: cada permiso muestra
+     su estado (Permitido / Denegado / Sin pedir / No disponible /
+     Se activa en Ajustes). La ubicación en segundo plano y la exención
+     de batería NO se pueden pedir dentro de la app en Android 11+:
+     solo se activan desde Ajustes del sistema, y la app abre esa
+     pantalla con un botón. Sin plugin instalado, el permiso se muestra
+     como "No disponible" y nada se rompe: la función que lo necesita
+     usa su alternativa (selector de archivos, compartir el enlace). */
+  function isNative() {
+    try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+    catch (e) { return false; }
+  }
+  function contactsPlugin() {
+    try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts) || null; }
+    catch (e) { return null; }
+  }
+  function cameraPlugin() {
+    try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) || null; }
+    catch (e) { return null; }
+  }
+  /* Estados guardados (lo último que supimos de cada permiso). */
+  function permStates() { return load('pegaoxl_perm_state', {}); }
+  function savePermStates(s) { save('pegaoxl_perm_state', s || {}); }
+  var PERM_DEFS = [
+    { key: 'location', icon: '📍', name: 'Ubicación', why: 'Para ubicarte en el mapa, ver qué hay cerca de ti y poner el pin exacto al publicar.' },
+    { key: 'background', icon: '🌙', name: 'Ubicación en segundo plano', why: 'Para que los recordatorios del día del evento suenen aunque la app esté cerrada. Android 11+ no deja pedirlo dentro de la app: solo se activa desde Ajustes del sistema.', manual: true, nativeOnly: true },
+    { key: 'notifications', icon: '🔔', name: 'Notificaciones', why: 'Para avisarte de publicaciones nuevas, nuevos negocios y el día de tus eventos, incluso con la app cerrada.' },
+    { key: 'contacts', icon: '👥', name: 'Contactos', why: 'Para invitar a tus amigos directamente desde tus contactos, sin copiar el enlace a mano.' },
+    { key: 'camera', icon: '📷', name: 'Cámara y fotos', why: 'Para subir el flyer de tu fiesta o las fotos de tu negocio desde la cámara o la galería.' },
+    { key: 'battery', icon: '🔋', name: 'Sin optimización de batería', why: 'Android duerme las apps en segundo plano. Sin esta exención, los recordatorios del día del evento pueden no sonar a tiempo. Se activa en Ajustes → Apps → PEGAO XL → Batería → Sin restricciones.', manual: true, nativeOnly: true }
+  ];
+  function permStateLabel(s) {
+    if (s === 'granted') return 'Permitido';
+    if (s === 'denied') return 'Denegado';
+    if (s === 'manual') return 'Se activa en Ajustes';
+    if (s === 'unavailable') return 'No disponible';
+    return 'Sin pedir';
+  }
+  var permLastCheck = 0;
+  function checkAllPermissions() {
+    /* Lee el estado real de cada permiso (plugins si existen, web si
+       no). Devuelve una promesa con {key: estado}. Nunca rompe nada. */
+    var out = {};
+    var jobs = [];
+    var gp = geoPlugin();
+    if (gp && gp.checkPermissions) {
+      jobs.push(gp.checkPermissions().then(function (r) {
+        var v = (r && (r.location || r.coarseLocation)) || null;
+        out.location = v === 'granted' ? 'granted' : (v === 'denied' ? 'denied' : 'prompt');
+      }).catch(function () {}));
+    } else if (!isNative() && navigator.permissions && navigator.permissions.query) {
+      jobs.push(navigator.permissions.query({ name: 'geolocation' }).then(function (r) {
+        out.location = r.state === 'granted' ? 'granted' : (r.state === 'denied' ? 'denied' : 'prompt');
+      }).catch(function () {}));
+    } else { out.location = isNative() ? 'prompt' : 'unavailable'; }
+    var pn = pushPlugin();
+    if (pn && pn.checkPermissions) {
+      jobs.push(pn.checkPermissions().then(function (r) {
+        var v = (r && r.receive) || null;
+        out.notifications = v === 'granted' ? 'granted' : (v === 'denied' ? 'denied' : 'prompt');
+      }).catch(function () {}));
+    } else if (!isNative() && window.Notification) {
+      out.notifications = Notification.permission === 'granted' ? 'granted' : (Notification.permission === 'denied' ? 'denied' : 'prompt');
+    } else { out.notifications = 'unavailable'; }
+    var cp = contactsPlugin();
+    if (cp && cp.checkPermissions) {
+      jobs.push(cp.checkPermissions().then(function (r) {
+        var v = (r && (r.contacts || r.display)) || null;
+        out.contacts = v === 'granted' ? 'granted' : (v === 'denied' ? 'denied' : 'prompt');
+      }).catch(function () {}));
+    } else { out.contacts = 'unavailable'; }
+    var cm = cameraPlugin();
+    if (cm && cm.checkPermissions) {
+      jobs.push(cm.checkPermissions().then(function (r) {
+        var v = (r && (r.camera || r.photos)) || null;
+        out.camera = v === 'granted' ? 'granted' : (v === 'denied' ? 'denied' : 'prompt');
+      }).catch(function () {}));
+    } else { out.camera = 'unavailable'; }
+    out.background = isNative() ? 'manual' : 'unavailable';
+    out.battery = isNative() ? 'manual' : 'unavailable';
+    permLastCheck = Date.now();
+    if (window.Promise && Promise.all) {
+      return Promise.all(jobs).then(function () { var cur = permStates(); var k; for (k in out) cur[k] = out[k]; savePermStates(cur); return out; });
+    }
+    var cur2 = permStates(); var k2; for (k2 in out) cur2[k2] = out[k2]; savePermStates(cur2);
+    return { then: function (fn) { try { fn(out); } catch (e) {} return this; } };
+  }
+  function refreshPermStates() {
+    permLastCheck = 0;
+    try { checkAllPermissions().then(function () { try { renderPermissions(); } catch (e) {} }); } catch (e) {}
+  }
+  function requestPermission(key) {
+    try {
+      if (key === 'location') {
+        var gp = geoPlugin();
+        if (gp && gp.requestPermissions) { gp.requestPermissions().then(function () { refreshPermStates(); }).catch(function () { refreshPermStates(); }); return; }
+        if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function () { refreshPermStates(); }, function () { refreshPermStates(); }, { timeout: 10000 }); return; }
+        toast('La ubicación no está disponible en este navegador'); return;
+      }
+      if (key === 'notifications') {
+        var pn = pushPlugin();
+        if (pn && pn.requestPermissions) { pn.requestPermissions().then(function (res) { if (res && res.receive === 'granted') initPush(); refreshPermStates(); }).catch(function () { refreshPermStates(); }); return; }
+        if (window.Notification && Notification.requestPermission) { Notification.requestPermission().then(function () { refreshPermStates(); }).catch(function () {}); return; }
+        toast('Las notificaciones no están disponibles aquí'); return;
+      }
+      if (key === 'contacts') {
+        var cp = contactsPlugin();
+        if (cp && cp.requestPermissions) { cp.requestPermissions().then(function () { refreshPermStates(); }).catch(function () { refreshPermStates(); }); return; }
+        toast('Los contactos solo se pueden pedir dentro de la APK (falta instalar el plugin)'); return;
+      }
+      if (key === 'camera') {
+        var cm = cameraPlugin();
+        if (cm && cm.requestPermissions) { cm.requestPermissions().then(function () { refreshPermStates(); }).catch(function () { refreshPermStates(); }); return; }
+        toast('La cámara y las fotos se piden solas al subir un flyer o una foto'); return;
+      }
+      if (key === 'background' || key === 'battery') { openAppSettings(); return; }
+    } catch (e) {}
+  }
+  function openAppSettings() {
+    /* Abre los Ajustes de la app en Android (intent:// a la pantalla de
+       la app, donde están Permisos y Batería). Si no se abre, el texto
+       del permiso explica el camino a mano. En web no aplica. Si el
+       intent no dispara en algún teléfono, la vía segura es añadir
+       openAppSettings al plugin nativo ApkInstallerPlugin (ver reporte). */
+    try {
+      if (!isNative()) { toast('Esto solo aplica dentro de la APK en el teléfono'); return; }
+      window.location.href = 'intent://#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;data=package:com.pegaoxl.app;end';
+      toast('Si no se abrió Ajustes, ve a Ajustes → Apps → PEGAO XL');
+    } catch (e) { toast('Ve a Ajustes → Apps → PEGAO XL para cambiarlo'); }
+  }
+  var permListBound = false;
+  function renderPermissions() {
+    try {
+      var box = document.getElementById('permList'); if (!box) return;
+      var states = permStates();
+      var native = isNative();
+      var html = '';
+      PERM_DEFS.forEach(function (d) {
+        if (d.nativeOnly && !native) return;
+        var st = states[d.key] || (d.manual ? 'manual' : 'prompt');
+        var btn = '';
+        if (d.manual) btn = '<button type="button" class="btn-secondary" data-perm-act="' + d.key + '">Abrir ajustes</button>';
+        else if (st === 'granted') btn = '<span class="perm-ok">✓ Permitido</span>';
+        else if (st === 'unavailable') btn = '<span class="muted small">No disponible</span>';
+        else btn = '<button type="button" class="btn-secondary" data-perm-act="' + d.key + '">Permitir</button>';
+        html += '<div class="perm-row"><span class="perm-icon">' + d.icon + '</span><div class="perm-info"><strong>' + d.name + '</strong><span class="perm-why">' + d.why + '</span></div><span class="perm-state perm-' + st + '">' + permStateLabel(st) + '</span>' + btn + '</div>';
+      });
+      box.innerHTML = html;
+      renderPushPrefs();
+      if (!permListBound) {
+        permListBound = true;
+        box.addEventListener('click', function (e) {
+          var b = e.target && e.target.closest ? e.target.closest('[data-perm-act]') : null;
+          if (!b) return;
+          requestPermission(b.getAttribute('data-perm-act'));
+        });
+      }
+      /* Refresca los estados reales como mucho una vez por minuto:
+         si se preguntara en cada render, cada snapshot de la nube
+         gastaría llamadas a los plugins. */
+      if (Date.now() - permLastCheck > 60000) {
+        try { checkAllPermissions().then(function () { try { renderPermissions(); } catch (e) {} }); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  /* ---------- Avisos push: qué quiere recibir el usuario (v18) ----------
+     Tres interruptores en Cuenta. Se guardan en localStorage y, si hay
+     nube, en el perfil (campo `pushPrefs`), que es lo que lee el cron
+     del servidor para decidir a quién avisa. Si falta, todo es true:
+     el que no tocó nada recibe todo. */
+  function pushPrefs() {
+    var p = load('pegaoxl_push_prefs', null);
+    if (p && typeof p === 'object') return { newPosts: p.newPosts !== false, eventDay: p.eventDay !== false, newBusinesses: p.newBusinesses !== false };
+    var prof = null;
+    try { prof = getMyProfile(); } catch (e) {}
+    if (prof && prof.pushPrefs && typeof prof.pushPrefs === 'object') return { newPosts: prof.pushPrefs.newPosts !== false, eventDay: prof.pushPrefs.eventDay !== false, newBusinesses: prof.pushPrefs.newBusinesses !== false };
+    return { newPosts: true, eventDay: true, newBusinesses: true };
+  }
+  function savePushPrefs(p) {
+    try {
+      save('pegaoxl_push_prefs', p);
+      var u = currentUser(); if (!u || !isCloud()) return;
+      var prof = getMyProfile(); if (!prof || !prof.id) return;
+      db.collection('profiles').doc(prof.id).set({ pushPrefs: p, updatedAt: Date.now() }, { merge: true }).catch(function () {});
+    } catch (e) {}
+  }
+  var pushPrefsBound = false;
+  function renderPushPrefs() {
+    try {
+      var box = document.getElementById('pushPrefsBox'); if (!box) return;
+      var p = pushPrefs();
+      box.innerHTML =
+        '<label class="push-pref"><input type="checkbox" data-push-pref="newPosts"' + (p.newPosts ? ' checked' : '') + '> Nuevas publicaciones <span class="muted small">— fiestas que se publiquen</span></label>' +
+        '<label class="push-pref"><input type="checkbox" data-push-pref="eventDay"' + (p.eventDay ? ' checked' : '') + '> Día del evento <span class="muted small">— aviso el día de tus fiestas favoritas o guardadas</span></label>' +
+        '<label class="push-pref"><input type="checkbox" data-push-pref="newBusinesses"' + (p.newBusinesses ? ' checked' : '') + '> Nuevos negocios <span class="muted small">— negocios que se registren</span></label>';
+      if (!pushPrefsBound) {
+        pushPrefsBound = true;
+        box.addEventListener('change', function (e) {
+          var t = e.target || null;
+          if (!t || !t.getAttribute || !t.getAttribute('data-push-pref')) return;
+          var cur = pushPrefs();
+          cur[t.getAttribute('data-push-pref')] = !!t.checked;
+          savePushPrefs(cur);
+          toast('Preferencia guardada');
+        });
+      }
+    } catch (e) {}
+  }
+
+  /* ---------- Aviso de permisos al primer inicio (v18) ----------
+     Una sola vez, después de la bienvenida: un aviso corto con dos
+     botones (Revisar permisos / Ahora no). No vuelve a salir aunque
+     se toque "Ahora no": la sección Permisos queda siempre en Cuenta. */
+  function maybeShowPermPrompt() {
+    try {
+      if (load('pegaoxl_perms_asked_v18', false)) return;
+      var ov = document.getElementById('welcomeOverlay');
+      if (ov && !ov.classList.contains('hidden')) return; /* la bienvenida va primero */
+      var p = document.getElementById('permPrompt');
+      if (p) p.classList.remove('hidden');
+    } catch (e) {}
+  }
+  function closePermPrompt() {
+    try { save('pegaoxl_perms_asked_v18', true); var p = document.getElementById('permPrompt'); if (p) p.classList.add('hidden'); } catch (e) {}
+  }
+  var permPromptReviewBtn = document.getElementById('permPromptReview');
+  if (permPromptReviewBtn) permPromptReviewBtn.addEventListener('click', function () {
+    closePermPrompt(); showTab('cuenta');
+    setTimeout(function () { var s = document.getElementById('permSection'); if (s && s.scrollIntoView) s.scrollIntoView(); }, 150);
+  });
+  var permPromptLaterBtn = document.getElementById('permPromptLater');
+  if (permPromptLaterBtn) permPromptLaterBtn.addEventListener('click', closePermPrompt);
+
+  /* ---------- Recordatorio del día del evento: favoritas y guardadas (v18) ----------
+     "Me interesa" ya avisaba el día del evento; ahora también lo hacen
+     las fiestas favoritas y guardadas. Las tres fuentes usan la MISMA
+     notificación local (mismo id), así una fiesta que es favorita y te
+     interesa suena una sola vez. Si deja de ser favorita, guardada o
+     de interesarte, el aviso se cancela. */
+  function cancelEventDayReminder(id) {
+    try {
+      var ln = localNotifPlugin(); if (!ln || !ln.cancel) return;
+      ln.cancel({ notifications: [{ id: interestNotifId(id) }] }).catch(function () {});
+    } catch (e) {}
+  }
+  function scheduleEventDayReminder(kind, id) {
+    /* Alias claro para los tests y para el cron futuro: programa el
+       aviso del día del evento de una fiesta (usa el mismo id que
+       scheduleInterestReminder, así no se duplica). */
+    try {
+      if (kind !== 'fiesta') return;
+      var p = parties().filter(function (x) { return x.id === id; })[0];
+      if (!p) return;
+      scheduleInterestReminder(id, { title: p.desc, date: p.date, time: p.time, place: p.place });
+    } catch (e) {}
+  }
+  function refreshEventRemindersFor(kind, id) {
+    try {
+      if (kind !== 'fiesta') return;
+      var p = parties().filter(function (x) { return x.id === id; })[0];
+      if (!p) { cancelEventDayReminder(id); return; }
+      var want = isFavorite('fiesta', id) || isSaved('fiesta', id) || isInterested(id);
+      if (!want) { cancelEventDayReminder(id); return; }
+      scheduleInterestReminder(id, { title: p.desc, date: p.date, time: p.time, place: p.place });
+    } catch (e) {}
+  }
+  function rescheduleEventReminders() {
+    /* Al arrancar: reprograma los avisos del día de todas las fiestas
+       favoritas, guardadas o que te interesan que todavía no pasaron.
+       Solo local, sin lecturas de red, una vez por arranque. */
+    try {
+      var seen = {};
+      var add = function (id) {
+        if (!id || seen[id]) return; seen[id] = true;
+        refreshEventRemindersFor('fiesta', id);
+      };
+      favoriteItems().forEach(function (f) { if (f.kind === 'fiesta') add(f.id); });
+      savedItems().forEach(function (s) { if (s.kind === 'fiesta') add(s.id); });
+      Object.keys(interestedMap()).forEach(add);
+    } catch (e) {}
+  }
+
+  /* ---------- Invitar desde contactos (v18) ----------
+     Elige un contacto del teléfono y le manda tu enlace por WhatsApp
+     (si tiene teléfono) o por correo (si solo tiene email). Solo
+     funciona dentro de la APK con el plugin de contactos instalado;
+     si no, el botón ni aparece. Los números cubanos sin código de
+     país (8 dígitos que empiezan por 5) llevan +53. */
+  function inviteFromContacts() {
+    try {
+      var cp = contactsPlugin();
+      if (!cp || !cp.pickContact) { toast('Invitar desde contactos solo funciona dentro de la APK'); return; }
+      cp.pickContact().then(function (c) {
+        try {
+          var phone = null;
+          if (c && c.phoneNumbers && c.phoneNumbers.length) phone = c.phoneNumbers[0].number || c.phoneNumbers[0].value || null;
+          var link = myInviteLink();
+          var text = 'Entra a PEGAO XL con mi enlace: ' + link;
+          if (phone) {
+            var digits = String(phone).replace(/[^0-9+]/g, '');
+            if (digits.charAt(0) !== '+') {
+              var d = digits.replace(/^0+/, '');
+              digits = (d.length === 8 && d.charAt(0) === '5') ? ('+53' + d) : d;
+            }
+            window.open('https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent(text), '_blank');
+            return;
+          }
+          var email = (c && c.emails && c.emails.length) ? (c.emails[0].address || c.emails[0].value) : null;
+          if (email) { window.location.href = 'mailto:' + email + '?subject=' + encodeURIComponent('Entra a PEGAO XL') + '&body=' + encodeURIComponent(text); return; }
+          toast('Ese contacto no tiene teléfono ni correo');
+        } catch (e) { toast('No se pudo invitar a ese contacto'); }
+      }).catch(function () { /* canceló la selección */ });
+    } catch (e) {}
+  }
+
+  /* ---------- Limpieza v18: restos de la versión anterior ----------
+     Al arrancar, borra los cachés locales de la pestaña eliminada y
+     quita sus entradas de favoritos y guardados. La nube NO se toca:
+     las colecciones viejas quedan ahí, sin uso, por si algún día hace
+     falta mirarlas. */
+  function cleanupLegacyDriverData() {
+    try {
+      removeStored('pegaoxl_drivers');
+      removeStored('pegaoxl_rides');
+      var favs = favoriteItems().filter(function (f) { return f.kind === 'fiesta' || f.kind === 'negocio'; });
+      if (favs.length !== favoriteItems().length) save('pegaoxl_favorites', favs);
+      var svd = savedItems().filter(function (s) { return s.kind === 'fiesta' || s.kind === 'negocio'; });
+      if (svd.length !== savedItems().length) save('pegaoxl_saved', svd);
     } catch (e) {}
   }
 
@@ -4303,13 +4092,11 @@
       toast('Filtros quitados');
     } catch (e) {}
   }
-  /* Chips de categoría del feed (como los del mapa). UBER = choferes:
-     lleva a la pestaña Choferes. "Abierto ahora" es un filtro aparte:
-     solo negocios abiertos en este momento. */
+  /* Chips de categoría del feed (como los del mapa). "Abierto ahora"
+     es un filtro aparte: solo negocios abiertos en este momento. */
   $$('.feed-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
       var cat = chip.getAttribute('data-feed-cat');
-      if (cat === 'UBER') { showTab('ubers'); return; }
       if (cat === 'abierto') { setFeedOpenOnly(!feedOpenOnly); renderFeed(); return; }
       setFeedOpenOnly(false);
       $$('.feed-chip').forEach(function (c) { c.classList.remove('active'); });
@@ -5040,6 +4827,8 @@
       if (!u) { linkEl.textContent = 'Regístrate con Google para tener tu enlace personal.'; if (countEl) countEl.textContent = ''; return; }
       var link = myInviteLink();
       linkEl.textContent = link;
+      var cb = document.getElementById('inviteContactsBtn');
+      if (cb) cb.classList.toggle('hidden', !contactsPlugin()); /* v18: solo si el plugin de contactos está instalado */
       var savedCount = load('pegaoxl_referral_count', 0);
       if (countEl) countEl.textContent = savedCount > 0 ? (savedCount + (savedCount === 1 ? ' amigo entró con tu enlace.' : ' amigos entraron con tu enlace.')) : 'Todavía nadie entró con tu enlace.';
       var prof = getMyProfile();
@@ -5068,14 +4857,16 @@
     if (navigator.share) { navigator.share({ title: 'PEGAO XL', text: text }).catch(function () {}); return; }
     copyText(text, 'Enlace copiado, compártelo con tus amigos');
   });
+  var inviteContactsBtn = document.getElementById('inviteContactsBtn');
+  if (inviteContactsBtn) inviteContactsBtn.addEventListener('click', inviteFromContacts); /* v18 */
 
   /* ---------- Bienvenida de 3 pasos ----------
      La primera vez que alguien abre la app: qué es, cómo se publica,
      cómo se buscan fiestas. Se salta y no vuelve a salir. */
   var WELCOME_STEPS = [
-    { icon: '🎉', title: 'Bienvenido a PEGAO XL', text: 'Las fiestas del mundo en un solo lugar: fiestas, negocios completos y choferes cerca de ti.' },
+    { icon: '🎉', title: 'Bienvenido a PEGAO XL', text: 'Las fiestas del mundo en un solo lugar: fiestas y negocios completos cerca de ti.' },
     { icon: '📣', title: 'Publicar es gratis', text: 'Toca el botón dorado + y publica tu fiesta o tu negocio. Llega a todo el mundo, sin pagar nada.' },
-    { icon: '🔍', title: 'Buscar y pedir', text: 'Busca por nombre, lugar o fecha, usa el mapa para ver dónde es, y pide un chofer solo para ti.' }
+    { icon: '🔍', title: 'Buscar en el mapa', text: 'Busca por nombre, lugar o fecha y usa el mapa para ver dónde es cada fiesta y cada negocio.' }
   ];
   var welcomeStep = 0;
   function renderWelcomeStep() {
@@ -5105,6 +4896,7 @@
       save('pegaoxl_welcome_seen', true);
       var ov = document.getElementById('welcomeOverlay');
       if (ov) ov.classList.add('hidden');
+      maybeShowPermPrompt(); /* v18: la bienvenida va primero, los permisos después */
     } catch (e) {}
   }
   var welcomeNextBtn = document.getElementById('welcomeNextBtn');
@@ -5160,13 +4952,15 @@
   function safeStep(fn) { try { fn(); } catch (e) {} }
   /* La limpieza de fiestas pasadas NO va en el camino crítico del
      arranque: se hace en segundo plano después del primer pintado. */
-  safeStep(renderAccount); safeStep(renderFeed); safeStep(renderDrivers);
+  safeStep(renderAccount); safeStep(renderFeed); safeStep(cleanupLegacyDriverData); /* v18: limpia datos viejos de la pestaña eliminada */
   setTimeout(function () { safeStep(cleanupPastEvents); }, 1500);
+  setTimeout(function () { safeStep(rescheduleEventReminders); }, 2500); /* v18: reprograma los avisos del día de favoritos/guardados */
   setTimeout(function () { safeStep(migrateThumbs); }, 3000); /* miniaturas de pines viejos, en segundo plano */
   safeStep(initGoogleAuth); /* Google se inicializa en paralelo, sin bloquear */
   safeStep(initDeepLink); /* enlace compartido ?post=<id>: abrir esa publicación */
   safeStep(initPush); /* notificaciones push (si el plugin está instalado) */
   safeStep(showWelcomeIfNeeded); /* bienvenida de 3 pasos, solo la primera vez */
+  safeStep(maybeShowPermPrompt); /* v18: pedir permisos solo la primera vez */
   safeStep(renderBroadcast); /* aviso del administrador, si hay uno guardado */
   safeStep(updateUpdateUI); /* versión en Cuenta y banner si ya hay aviso */
   safeStep(handleRefParam); /* ?ref= de invitar amigos */
@@ -5203,11 +4997,11 @@
       timeAgo: timeAgo, feedScore: feedScore, getTastes: getTastes, hasTastes: hasTastes,
       recordTaste: recordTaste, recordTasteForTarget: recordTasteForTarget,
       feedMode: feedMode, currentUser: currentUser, getMyProfile: getMyProfile,
-      parties: parties, businesses: businesses, drivers: drivers, rides: rides,
+      parties: parties, businesses: businesses,
       reviews: reviews, comments: comments, isCloud: isCloud, syncCache: syncCache,
       eventEndMs: eventEndMs, usernameFromEmail: usernameFromEmail,
       shareTextFor: shareTextFor, shareWithFiles: shareWithFiles, canShareFiles: canShareFiles,
-      shareLinkFor: shareLinkFor, canSeeRide: canSeeRide, isMyDriver: isMyDriver, myDriverProfile: myDriverProfile,
+      shareLinkFor: shareLinkFor,
       loadLeaflet: loadLeaflet, ensureMap: ensureMap, cleanupExpiredFlyers: cleanupExpiredFlyers,
       geocodeAddress: geocodeAddress, geocodeAndSave: geocodeAndSave, renderMapMarkers: renderMapMarkers, locateMe: locateMe, initMapInternal: initMapInternal,
       renderFeed: renderFeed,
@@ -5242,12 +5036,15 @@
       myInviteLink: myInviteLink, refFromUrl: refFromUrl, handleRefParam: handleRefParam,
       drawQR: drawQR, openPartyDetail: openPartyDetail, closePartyDetail: closePartyDetail, renderPartyDetail: renderPartyDetail,
       showWelcomeIfNeeded: showWelcomeIfNeeded, closeWelcome: closeWelcome,
-      /* v16: alarma del chofer + actualización dentro de la app. */
-      startRideAlarm: startRideAlarm, stopRideAlarm: stopRideAlarm, alarmState: alarmState,
-      acceptRide: acceptRide, rejectRide: rejectRide, checkNewRidesForMe: checkNewRidesForMe, notifyDriverOfRide: notifyDriverOfRide,
-      requestRide: requestRide, createRide: createRide, renderDrivers: renderDrivers,
+      /* v18: actualización dentro de la app. */
       checkForUpdate: checkForUpdate, updateInfoOf: updateInfoOf, startUpdate: startUpdate, updateUpdateUI: updateUpdateUI,
       initPush: initPush, saveFcmTokenToProfile: saveFcmTokenToProfile,
+      /* v18: permisos, avisos push y recordatorios del día del evento. */
+      renderPermissions: renderPermissions, checkAllPermissions: checkAllPermissions, requestPermission: requestPermission,
+      maybeShowPermPrompt: maybeShowPermPrompt, openAppSettings: openAppSettings, cleanupLegacyDriverData: cleanupLegacyDriverData,
+      pushPrefs: pushPrefs, savePushPrefs: savePushPrefs, scheduleEventDayReminder: scheduleEventDayReminder,
+      cancelEventDayReminder: cancelEventDayReminder, refreshEventRemindersFor: refreshEventRemindersFor, rescheduleEventReminders: rescheduleEventReminders,
+      isNative: isNative, inviteFromContacts: inviteFromContacts,
       /* Reservar: contactos, capacidad, horario y reservas. */
       normalizePhone: normalizePhone, igHandle: igHandle, displayIg: displayIg, reserveContactsOf: reserveContactsOf,
       reserveUrlFor: reserveUrlFor, reservations: reservations, remainingSeats: remainingSeats, isOpenNow: isOpenNow,
@@ -5256,18 +5053,14 @@
       /* Borrado de fiestas pasadas + dirección guiada + compartir con flyer. */
       cleanupPastEvents: cleanupPastEvents, isPastEvent: isPastEvent, eventDateTimeMs: eventDateTimeMs,
       flushTombstones: flushTombstones, deletePostChildren: deletePostChildren,
-      deleteListing: deleteListing, deleteDriver: deleteDriver, deleteRide: deleteRide,
+      deleteListing: deleteListing,
       composeAddress: composeAddress, flyerFile: flyerFile,
-      /* Solo para pruebas: fija los rides sin pasar por la nube. */
-      _setRidesForTest: function (list) { save('pegaoxl_rides', list); },
       /* Solo para pruebas: escribe un caché completo (localStorage + memCache). */
       _setCacheForTest: function (key, list) { save(key, list); },
       /* Solo para pruebas: fija la ubicación del usuario. */
       _setMyLatLngForTest: function (lat, lng) { myLatLng = { lat: lat, lng: lng }; },
       /* Solo para pruebas: inyecta datos del espejo sin hacer fetch. */
       _setMirrorForTest: function (data) { applyMirrorData(data); },
-      /* Solo para pruebas: reinicia el detector de rides nuevos. */
-      _resetRideWatchForTest: function () { seenRideIds = null; },
       /* Solo para pruebas: reinicia los frenos de reintento. */
       _resetUpdateCheckForTest: function () { updateLastCheck = 0; },
       _resetMirrorTryForTest: function () { mirrorLastTry = 0; },
